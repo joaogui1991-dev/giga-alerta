@@ -1,0 +1,39 @@
+# Alerta de fora do ar da GIGA RENTAL, testado de FORA do VPS.
+# Repo público de propósito: no GitHub, Actions em repo público não gasta minutos.
+# A cada 5 min abre os endereços dos sistemas; se algum não responde, abre uma issue
+# "fora-do-ar" atribuída ao João (e-mail); quando volta, fecha a issue (outro e-mail).
+# Lógica em scripts/alerta-fora-do-ar.sh. O GitHub pode atrasar agendamentos.
+name: Alerta de fora do ar
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      simular_queda:
+        description: 'Simular uma queda (para ver o e-mail chegar)'
+        type: boolean
+        default: false
+
+# um teste por vez; o seguinte espera (evita duas issues para a mesma queda)
+concurrency:
+  group: alerta-fora-do-ar
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  testar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Testar os endereços e avisar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TESTE: ${{ inputs.simular_queda && '1' || '0' }}
+        run: bash scripts/alerta-fora-do-ar.sh
